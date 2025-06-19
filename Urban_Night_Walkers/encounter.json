@@ -1,0 +1,27 @@
+[
+  {
+    "animal1": "dog001",
+    "animal2": "cat002",
+    "count": 3
+  },
+  {
+    "animal1": "cat001",
+    "animal2": "dog002",
+    "count": 5
+  },
+  {
+    "animal1": "cat002",
+    "animal2": "cat001",
+    "count": 4
+  },
+  {
+    "animal1": "dog002",
+    "animal2": "cat001",
+    "count": 3
+  },
+  {
+    "animal1": "cat003",
+    "animal2": "cat001",
+    "count": 4
+  }
+]

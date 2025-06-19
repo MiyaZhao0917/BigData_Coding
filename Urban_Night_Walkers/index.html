@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Urban Night Walkers</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; }
+    #map { width: 100%; height: 100%; }
+    #controls {
+      position: absolute; top: 10px; left: 10px;
+      background: rgba(0,0,0,0.6); color: white; padding: 10px; border-radius: 5px;
+      z-index: 1000;
+    }
+    #controls button, #controls input { margin: 0 5px; }
+    #poemBox {
+      position: absolute; bottom: 10px; left: 10px;
+      background: rgba(0,0,0,0.5); color: white;
+      padding: 5px 10px; border-radius: 5px; max-width: 300px;
+      z-index: 1000;
+    }
+    #network {
+      position: absolute; top: 100px; right: 10px;
+      width: 300px; height: 300px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 5px; display: none; z-index: 1000;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+  <div id="controls">
+    <button id="playBtn">▶ Play</button>
+    <button id="pauseBtn">⏸ Pause</button>
+    <button id="toggleHeat">🌡 Heatmap</button>
+    <button id="toggleNet">🌐 Network</button>
+    <button id="exportBtn">📷 Save Snapshot</button>
+    <label>Speed:
+      <input type="range" id="speedControl" min="500" max="5000" step="500" value="2000">
+    </label>
+    <span id="timeLabel">Time: --:--</span>
+  </div>
+  <div id="poemBox">Poem will be displayed here.</div>
+  <div id="network">
+    <svg width="300" height="300"></svg>
+  </div>
+  <audio id="bgSound" src="city.mp3" preload="auto" loop></audio>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <script>
+    // Initialize the Leaflet map with zoom control disabled initially
+    const map = L.map('map', {
+      zoomControl: false
+    }).setView([51.5074, -0.1278], 13);
+
+    // Add a dark tile layer for aesthetic contrast
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CartoDB',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    // Re-enable zoom control at top right to avoid overlapping custom buttons
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    // Global state variables
+    let animals = [];              // Array to store loaded animal data
+    let animalLayers = [];         // Array of polylines and markers per animal
+    let encounterData = [];        // Array of social network (encounter) data
+    let heatLayer = null;          // Leaflet heatmap layer instance
+    let heatVisible = false;       // Flag to track heatmap visibility
+    let netVisible = false;        // Flag to track network visibility
+    let currentIndex = 0;          // Current playback index in time series
+    let timer = null;              // Interval timer for playback
+    let times = [];                // Array of formatted time strings
+    let speed = 2000;              // Playback speed in ms (default 2000ms)
+
+    // Handle speed control slider changes
+    document.getElementById('speedControl').addEventListener('input', e => {
+      speed = parseInt(e.target.value);
+      if (timer) { clearInterval(timer); timer = setInterval(updateTrack, speed); }
+    });
+
+    // Load animal data from JSON and initialize polylines and markers
+    function loadAnimals() {
+      fetch('animals.json')
+        .then(res => res.json())
+        .then(data => {
+          animals = data;
+          times = animals[0].track.map(p => p.time.slice(11,16));    // Extract HH:MM
+          animalLayers = animals.map(animal => {
+            // Polyline for the trajectory
+            const polyline = L.polyline([], {
+              color: animal.species === 'cat' ? 'cyan' : 'orange',
+              weight: 4, opacity: 0.7
+            }).addTo(map);
+            // Marker to represent current position
+            const marker = L.circleMarker([animal.track[0].lat, animal.track[0].lng], {
+              radius: 6, color: 'yellow', fillColor: 'yellow', fillOpacity: 1
+            }).addTo(map);
+            // On marker click, show info popup and play sound
+            marker.on('click', e => {
+              e.originalEvent.stopPropagation();
+              showAnimalInfo(animal);
+              playSound(animal.species);
+            });
+            return { polyline, marker };
+          });
+        });
+    }
+    // Load encounter (social network) data
+    function loadEncounters() {
+      fetch('encounter.json')
+        .then(res => res.json())
+        .then(data => { encounterData = data; });
+    }
+
+    // Update playback frame: move trackers, extend polylines, update poem & heatmap
+    function updateTrack() {
+      if (currentIndex < times.length) {
+        animalLayers.forEach((layer, i) => {
+          const point = animals[i].track[currentIndex];
+          const latlng = [point.lat, point.lng];
+          layer.polyline.addLatLng(latlng);
+          layer.marker.setLatLng(latlng);
+        });
+        document.getElementById('timeLabel').innerText = `Time: ${times[currentIndex]}`;
+        document.getElementById('poemBox').innerText = generatePoemLine();
+        if (heatVisible) updateHeatmap();
+        currentIndex++;
+      } else {
+        clearInterval(timer);
+      }
+    }
+
+    // Generate or refresh the heatmap layer based on current positions
+    function updateHeatmap() {
+      const points = animals.map(a => {
+        const idx = Math.min(currentIndex, a.track.length - 1);
+        return [a.track[idx].lat, a.track[idx].lng];
+      });
+      if (heatLayer) map.removeLayer(heatLayer);
+      heatLayer = L.heatLayer(points, { radius: 25, blur: 15, maxZoom: 17 }).addTo(map);
+    }
+
+    // Show a popup with animal info and encounter count
+    function showAnimalInfo(animal) {
+      const distance = calculatePathLength(animal.track).toFixed(2);
+      const encounterCount = encounterData
+        .filter(e => e.animal1 === animal.id || e.animal2 === animal.id)
+        .reduce((sum, e) => sum + e.count, 0);
+      const content = `
+        <b>ID:</b> ${animal.id}<br>
+        <b>Species:</b> ${animal.species}<br>
+        <b>Gender:</b> ${animal.gender || 'unknown'}<br>
+        <b>Age:</b> ${animal.age || 'unknown'}<br>
+        <b>Path length:</b> ${distance} km<br>
+        <b>Encounters:</b> ${encounterCount}
+      `;
+      L.popup()
+        .setLatLng(animal.track[Math.min(currentIndex, animal.track.length - 1)])
+        .setContent(content)
+        .openOn(map);
+    }
+
+    // Calculate total path distance in km
+    function calculatePathLength(track) {
+      let length = 0;
+      for (let i = 1; i < track.length; i++) {
+        length += L.latLng(track[i-1].lat, track[i-1].lng).distanceTo(L.latLng(track[i].lat, track[i].lng));
+      }
+      return length / 1000;
+    }
+
+    // Play species-specific sound
+    function playSound(species) {
+      let src = species === 'cat' ? 'cat.mp3' : species === 'dog' ? 'dog.mp3' : '';
+      if (src) new Audio(src).play();
+    }
+
+    // Randomly generate a poetic line associated with current frame
+    function generatePoemLine() {
+      const s = ["The solitary shadow at midnight","The wandering soul","The silent late sleeper","The shadow under the bridge"];
+      const a = ["quickens its pace","searches for warmth","wanders quietly","watches over the city"];
+      const p = ["under the bridge","at the corner of street","on the dilapidated roof","at the entrance of the deserted alley"];
+      return `${s[Math.floor(Math.random()*s.length)]} ${a[Math.floor(Math.random()*a.length)]} ${p[Math.floor(Math.random()*p.length)]}.`;
+    }
+
+    // Draw social network using D3 force-directed graph
+    function drawNetwork() {
+      const svg = d3.select("#network svg");
+      svg.selectAll("*").remove();
+      if (encounterData.length === 0) return;
+
+      const nodes = [], links = [], nodeSet = new Set();
+      encounterData.forEach(e => {
+        nodeSet.add(e.animal1);
+        nodeSet.add(e.animal2);
+        links.push({ source: e.animal1, target: e.animal2, value: e.count });
+      });
+      nodeSet.forEach(id => nodes.push({ id }));
+
+      const simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+        .force("charge", d3.forceManyBody().strength(-200))
+        .force("center", d3.forceCenter(150, 150));
+
+      const link = svg.append("g").attr("stroke", "#aaa")
+        .selectAll("line").data(links).join("line")
+        .attr("stroke-width", d => d.value);
+
+      const node = svg.append("g").attr("stroke", "#fff").attr("stroke-width", 1.5)
+        .selectAll("circle").data(nodes).join("circle")
+        .attr("r", 10)
+        .attr("fill", d => d.id.startsWith("cat") ? "cyan" : "orange")
+        .call(d3.drag()
+          .on("start", (event, d) => {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x; d.fy = d.y;
+          })
+          .on("drag", (event, d) => {
+            d.fx = event.x; d.fy = event.y;
+          })
+          .on("end", (event, d) => {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null; d.fy = null;
+          })
+        );
+
+      node.append("title").text(d => d.id);
+
+      simulation.on("tick", () => {
+        link.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+        node.attr("cx", d => d.x).attr("cy", d => d.y);
+      });
+    }
+
+    // Playback, pause, heatmap toggle, network toggle, export actions
+    document.getElementById('playBtn').addEventListener('click', () => {
+      if (!timer) timer = setInterval(updateTrack, speed);
+      document.getElementById('bgSound').play();
+    });
+
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+      if (timer) { clearInterval(timer); timer = null; }
+      document.getElementById('bgSound').pause();
+    });
+
+    document.getElementById('toggleHeat').addEventListener('click', () => {
+      heatVisible = !heatVisible;
+      if (heatVisible) updateHeatmap();
+      else if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+    });
+
+    document.getElementById('toggleNet').addEventListener('click', () => {
+      netVisible = !netVisible;
+      document.getElementById('network').style.display = netVisible ? 'block' : 'none';
+      if (netVisible) drawNetwork();
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      html2canvas(document.getElementById('map')).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'animal_night.png';
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    });
+
+    // Initialize data loading
+    loadAnimals();
+    loadEncounters();
+  </script>
+</body>
+</html>
