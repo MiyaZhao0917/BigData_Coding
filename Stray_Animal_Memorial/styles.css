@@ -1,0 +1,166 @@
+/* Ensure the entire page fills the viewport without any margin or padding */
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Global base styles for body: reset margin/padding, apply font, prevent horizontal scroll */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Quicksand', 'Poppins', sans-serif;
+  overflow-x: hidden;
+}
+
+/* On Stray Animal Memorial Hall, all header, main, and nav text is white for contrast against dark background */
+body.home header,
+body.home main,
+body.home nav a {
+  color: white;
+}
+
+/* Stray Animal Memorial Hall header uses semi-transparent white background so starry sky is slightly visible behind */
+body.home header {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Memorial Wall, Stray Animal Data, and Animal Detail: dark text for better readability on light backgrounds */
+body.memorial header,
+body.memorial main,
+body.memorial nav a,
+body.data header,
+body.data main,
+body.data nav a,
+body.animal header,
+body.animal main,
+body.animal nav a {
+  color: #333;
+}
+
+/* Memorial Wall, Stray Animal Data, and Animal Detail: header uses a green background for consistent branding */
+body.memorial header,
+body.data header,
+body.animal header {
+  background: #7bc47f;
+  color: white; /* Ensure header text is white for contrast on green background */
+}
+
+/* Header layout: centered text, full width, ensures content stays above background layers */
+header {
+  position: relative;
+  padding: 1em;
+  text-align: center;
+  width: 100%;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+/* Navigation links: remove underline, add spacing and bold weight */
+nav a {
+  text-decoration: none;
+  margin: 0 10px;
+  font-weight: bold;
+}
+
+/* Main content area: full width, padding, positioned above background layers */
+main {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1em;
+  position: relative;
+  z-index: 1;
+}
+
+/* Button styling: orange background, white text, rounded corners, hover effect */
+button {
+  padding: 8px 14px;
+  background: #ffb347;
+  border: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:hover {
+  background: #ff9a30;
+}
+
+/* Canvas styling for charts: center, white background, border, rounded corners, responsive width */
+canvas {
+  display: block;
+  margin: 10px auto;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  max-width: 100%; /* Allows scaling down on small screens */
+  height: auto; /* Maintain aspect ratio */
+}
+
+/* Chart container spacing */
+.chart-block {
+  margin-bottom: 20px;
+}
+
+/* Starry sky background canvas: full viewport, fixed position, behind all content */
+#star-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  background: radial-gradient(#000428, #004e92);
+}
+
+/* Memorial Wall card container: flex layout, wrap rows, center alignment, gap between cards */
+#memorial-wall {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px;
+}
+
+/* Individual animal card: white box with border, shadow, hover scale effect */
+.animal-card {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 10px;
+  width: 180px;
+  box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.animal-card:hover {
+  transform: scale(1.05);
+  border-color: #7bc47f;
+}
+
+/* Stray Animal Data: spacing between sections */
+section {
+  margin-bottom: 20px;
+}
+
+/* Labels for form controls: block layout, spacing */
+label {
+  display: block;
+  margin: 5px 0;
+}
+
+/* Result text styling for simulation: bold, top margin */
+#sim-result {
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+/* Responsive: on small screens reduce animal card width for better fit */
+@media (max-width: 600px) {
+  .animal-card {
+    width: 140px;
+  }
+}

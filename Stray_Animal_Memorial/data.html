@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>Stray Animal Data</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="data">
+  <header>
+    <h1>Stray Animal Data</h1>
+    <nav>
+      <a href="index.html">Stray Animal Memorial Hall</a>
+      <a href="memorial.html">Memorial Wall</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="data-filters">
+      <h2>Selector</h2>
+      <label>Year: 
+        <select id="filter-year"><option value="">All</option></select>
+      </label>
+      <label>Species: 
+        <select id="filter-species"><option value="">All</option></select>
+      </label>
+      <label>Sex: 
+        <select id="filter-sex"><option value="">All</option></select>
+      </label>
+      <button id="apply-filters">Apply</button>
+    </section>
+
+    <section>
+      <h2>Data Chart</h2>
+      <div class="chart-block">
+        <canvas id="intakeFunnel" width="800" height="400"></canvas>
+        <button onclick="exportChart('intakeFunnel')">Export chart</button>
+      </div>
+      <div class="chart-block">
+        <canvas id="durationChart" width="800" height="400"></canvas>
+        <button onclick="exportChart('durationChart')">Export chart</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Budget/Staff Simulation</h2>
+      <label>Budget: 
+        <input type="range" id="budget-slider" min="1" max="3" step="0.1" value="1">
+      </label>
+      <label>Staff: 
+        <input type="range" id="staff-slider" min="1" max="3" step="0.1" value="1">
+      </label>
+      <button id="simulate-btn">Simulate</button>
+      <p id="sim-result"></p>
+    </section>
+  </main>
+
+  <script src="main.js"></script>
+</body>
+</html>

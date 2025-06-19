@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Stray Animal Memorial Hall</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="home">
+  <canvas id="star-canvas"></canvas>
+
+  <header>
+    <h1>Stray Animal Memorial Hall</h1>
+    <nav>
+      <a href="memorial.html">Memorial Wall</a>
+      <a href="data.html">Stray Animal Data</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="summary">
+      <h2>General Statistics</h2>
+      <p id="total-count">Loading...</p>
+      <button onclick="lightCandle()">Light a star to mourn</button>
+      <p>You have lit <span id="candle-count">0</span> stars</p>
+    </section>
+
+    <section>
+      <h2>Data Overview</h2>
+      <div class="chart-block">
+        <canvas id="reasonChart" width="500" height="250"></canvas>
+        <button onclick="exportChart('reasonChart')">Export chart</button>
+      </div>
+      <div class="chart-block">
+        <canvas id="yearChart" width="500" height="250"></canvas>
+        <button onclick="exportChart('yearChart')">Export chart</button>
+      </div>
+      <div class="chart-block">
+        <canvas id="speciesChart" width="500" height="250"></canvas>
+        <button onclick="exportChart('speciesChart')">Export chart</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="main.js"></script>
+</body>
+</html>
